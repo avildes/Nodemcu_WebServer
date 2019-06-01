@@ -4,64 +4,14 @@
 
 ESP8266WebServer server(80);
 
-const char *ssid = "";
-const char *password = "";
+const char *ssid = "TP-LINK_1544";
+const char *password = "52337260";
 
 int D0Pin = 16;
 int D0Value;
 
-void handleRoot();
-void updatePins();
-void handleNotFound();
-void connect()
-{
-  WiFi.begin(ssid, password); //Connect to the WiFi network
-
-  while (WiFi.status() != WL_CONNECTED)
-  { //Wait for connection
-
-    delay(500);
-    Serial.println("Waiting to connect...");
-
-    //TODO trocar o while por um for
-    //TODO se nao conseguir conectar reiniciar o nodemcu
-  }
-
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP()); //Print the local IP
-  //TODO Configurar IP fixo para o nodemc
-  server.on("/", HTTP_GET, handleRoot);
-  //server.on("/definePins", definePins);
-  server.on("/updatePins", HTTP_POST, updatePins); //Associate the handler function to the path
-  server.onNotFound(handleNotFound);
-  server.begin(); //Start the server
-  Serial.println("Server listening");
-}
-
-void setup()
-{
-  Serial.begin(9600);
-
-  pinMode(D0Pin, OUTPUT);
-
-  connect();
-}
-
-void loop()
-{
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    connect();
-  }
-  else
-  {
-    server.handleClient(); //Handling of incoming requests
-  }
-}
-
 void updatePins()
-{ //Handler for the body path
-
+{
   if (server.hasArg("plain") == false)
   { //Check if body received
     Serial.println("plain false");
@@ -112,6 +62,64 @@ void handleNotFound()
 
 void handleRoot()
 {
-  server.send(200, "text/plain", String(D0Value));
-  Serial.println("GET Ok");
+    String message = "{\n\"D0\": " + String(digitalRead(D0)) + ",\n" +
+                      "\"D1\": " + String(digitalRead(D1)) + ",\n" +
+                      "\"D2\": " + String(digitalRead(D2)) + ",\n" +
+                      "\"D3\": " + String(digitalRead(D3)) + ",\n" +
+                      "\"D4\": " + String(digitalRead(D4)) + ",\n" +
+                      "\"D5\": " + String(digitalRead(D5)) + ",\n" +
+                      "\"D6\": " + String(digitalRead(D6)) + ",\n" +
+                      "\"D7\": " + String(digitalRead(D7)) + ",\n" +
+                      "\"D8\": " + String(digitalRead(D8)) + ",\n" +
+                      "\"A0\": " + String(analogRead(A0)) + "\n" +
+                     "}";
+
+    server.send(200, "application/json", message);
+    Serial.println("GET Ok");
 } 
+
+void connect()
+{
+  WiFi.begin(ssid, password); //Connect to the WiFi network
+
+  while (WiFi.status() != WL_CONNECTED)
+  { //Wait for connection
+
+    delay(500);
+    Serial.println("Waiting to connect...");
+
+    //TODO trocar o while por um for
+    //TODO se nao conseguir conectar reiniciar o nodemcu
+  }
+
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP()); //Print the local IP
+  //TODO Configurar IP fixo para o nodemc
+  server.on("/", HTTP_GET, handleRoot);
+  //server.on("/definePins", definePins);
+  server.on("/updatePins", HTTP_POST, updatePins); //Associate the handler function to the path
+  server.onNotFound(handleNotFound);
+  server.begin(); //Start the server
+  Serial.println("Server listening");
+}
+
+void setup()
+{
+  Serial.begin(9600);
+
+  pinMode(D0Pin, OUTPUT);
+
+  connect();
+}
+
+void loop()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    connect();
+  }
+  else
+  {
+    server.handleClient();
+  }
+}
