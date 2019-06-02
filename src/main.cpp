@@ -62,12 +62,9 @@ void updatePins()
 
   int D0 = doc["D0"];
 
-  D0Value = D0;
+  digitalWrite(D0Pin, D0);
 
-  digitalWrite(D0Pin, D0Value);
-  //digitalWrite(5, D1);
-
-  server.send(200, "text/plain", String(D0Value));
+  server.send(200, "text/plain", "Pin: " + String(D0Pin) + "\n Value: "+  String(D0Value));
   Serial.println("POST Ok");
 }
 
@@ -156,8 +153,6 @@ void connect()
 void setup()
 {
   Serial.begin(9600);
-
-  pinMode(D0Pin, OUTPUT);
 
   connect();
 }
