@@ -39,7 +39,7 @@ uint8_t convertPinMode(pMode mode)
     return response;
 }
 
-void updatePins()
+void updatePin()
 {
   if (server.hasArg("plain") == false)
   { //Check if body received
@@ -60,11 +60,12 @@ void updatePins()
     return;
   }
 
-  int D0 = doc["D0"];
+  int pin = doc["pin"];
+  int value = doc["value"];
 
-  digitalWrite(D0Pin, D0);
+  digitalWrite(pin, value);
 
-  server.send(200, "text/plain", "Pin: " + String(D0Pin) + "\n Value: "+  String(D0Value));
+  server.send(200, "text/plain", "Pin: " + String(pin) + "\n Value: "+  String(value));
   Serial.println("POST Ok");
 }
 
@@ -144,7 +145,7 @@ void connect()
   //TODO Configurar IP fixo para o nodemc
   server.on("/", HTTP_GET, handleRoot);
   //server.on("/definePins", definePins);
-  server.on("/updatePins", HTTP_POST, updatePins); //Associate the handler function to the path
+  server.on("/updatePin", HTTP_POST, updatePin); //Associate the handler function to the path
   server.onNotFound(handleNotFound);
   server.begin(); //Start the server
   Serial.println("Server listening");
