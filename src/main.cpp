@@ -7,15 +7,18 @@ ESP8266WebServer server(80);
 const char *ssid = "TP-LINK_1544";
 const char *password = "52337260";
 
-int D0Pin = 16;
-int D0Value;
-
 enum pMode
 {
   mINPUT = 0,
   mOUTPUT = 1,
   mINPUT_PULLUP = 2
 };
+
+void sendSuccessMessage(String message)
+{
+  server.send(200, "text/plain", message);
+  Serial.println("Code 200 sent with message: " + message);
+}
 
 uint8_t convertPinMode(pMode mode)
 {
@@ -39,12 +42,23 @@ uint8_t convertPinMode(pMode mode)
     return response;
 }
 
-void updatePin()
+boolean hasBody()
 {
-  if (server.hasArg("plain") == false)
-  { //Check if body received
+  boolean hasBody = server.hasArg("plain");
+
+  if(!hasBody)  //Check if body received
+  {
     Serial.println("plain false");
     server.send(200, "text/plain", "Body not received");
+  }
+
+    return hasBody;
+}
+
+void updatePin()
+{
+  if(!hasBody())
+  {
     return;
   }
 
@@ -65,19 +79,13 @@ void updatePin()
 
   digitalWrite(pin, value);
 
-  server.send(200, "text/plain", "Pin: " + String(pin) + "\n Value: "+  String(value));
-  Serial.println("POST Ok");
+  sendSuccessMessage("Pin: " + String(pin) + "\n Value: "+  String(value));
 }
 
 void updatePinMode()
 {
-  //TODO remover parte inicial esperando como resposta um DynamicJsonDocument
-  //TODO remover parte final e colocar uma resposta padrão para todos ou uma resposta única desse método
-
-  if (server.hasArg("plain") == false)
-  { //Check if body received
-    Serial.println("plain false");
-    server.send(200, "text/plain", "Body not received");
+  if(!hasBody())
+  {
     return;
   }
 
@@ -93,19 +101,20 @@ void updatePinMode()
     return;
   }
 
-  int mode = doc["pinMode"];
   int pin = doc["pin"];
+  int value = doc["pinMode"];
 
-  digitalWrite(pin, convertPinMode(static_cast<pMode>(mode)));
+  pMode mode = static_cast<pMode>(value);
 
-  server.send(200, "text/plain", String(D0Value));
-  Serial.println("POST Ok");
+  digitalWrite(pin, convertPinMode(mode));
+
+  sendSuccessMessage("Pin "+ String(pin) + " was set to " + String(mode));
 }
 
 void handleNotFound()
 {
   server.send(404, "text/plain", "404: Not found");
-  Serial.println("404 Ok");
+  Serial.println("404 Error");
 }
 
 void handleRoot()
@@ -122,8 +131,7 @@ void handleRoot()
                    "\"A0\": " + String(analogRead(A0)) + "\n" +
                    "}";
 
-  server.send(200, "application/json", message);
-  Serial.println("GET Ok");
+  sendSuccessMessage(message);
 }
 
 void connect()
@@ -142,11 +150,13 @@ void connect()
 
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP()); //Print the local IP
-  //TODO Configurar IP fixo para o nodemc
+  
+  //TODO Configurar IP fixo para o nodemcu
   server.on("/", HTTP_GET, handleRoot);
-  //server.on("/definePins", definePins);
-  server.on("/updatePin", HTTP_POST, updatePin); //Associate the handler function to the path
+  server.on("/updatePin", HTTP_POST, updatePin);
+  server.on("/updatePinMode", HTTP_POST, updatePinMode);
   server.onNotFound(handleNotFound);
+
   server.begin(); //Start the server
   Serial.println("Server listening");
 }
@@ -168,4 +178,6 @@ void loop()
   {
     server.handleClient();
   }
+
+  //TODO Prever a opção de fazer com que o nodemcu mande um post para uma determinada url quando o estado de algum pino mudar
 }
